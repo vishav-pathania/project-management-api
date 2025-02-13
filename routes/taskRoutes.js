@@ -25,14 +25,23 @@ router.post("/:projectId/tasks", authMiddleware, async (req, res) => {
 router.get("/:projectId/tasks", authMiddleware, async (req, res) => {
   try {
     const { projectId } = req.params;
+    const { status } = req.query; // Allow filtering by status
 
-    const tasks = await prisma.task.findMany({ where: { projectId } });
+    const filters = { projectId };
+    if (status) filters.status = status; // Apply status filter if provided
+
+    const tasks = await prisma.task.findMany({
+      where: filters,
+      include: { assignedUser: true }, // Include user details
+    });
 
     res.json(tasks);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching tasks", error: error.message });
+    res.status(500).json({ message: "Error fetching tasks for project", error: error.message });
   }
 });
+
+
 
 // Update a task
 router.put("/:id", authMiddleware, async (req, res) => {
@@ -64,5 +73,27 @@ router.delete("/tasks/:id", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Error deleting task", error: error.message });
   }
 });
+
+
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const { status, assignedUserId } = req.query; // Extract query params
+
+    const filters = {}; // Initialize empty filters object
+
+    if (status) filters.status = status; // Apply status filter
+    if (assignedUserId) filters.assignedUserId = assignedUserId; // Apply user filter
+
+    const tasks = await prisma.task.findMany({
+      where: filters,
+      include: { project: true, assignedUser: true }, // Include related data
+    });
+
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching tasks", error: error.message });
+  }
+});
+
 
 module.exports = router;

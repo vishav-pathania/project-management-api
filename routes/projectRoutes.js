@@ -61,4 +61,26 @@ router.delete("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+
+// Get tasks for a project
+router.get("/:projectId/tasks", authMiddleware, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { status } = req.query; // Allow filtering by status
+
+    const filters = { projectId };
+    if (status) filters.status = status; // Apply status filter if provided
+
+    const tasks = await prisma.task.findMany({
+      where: filters,
+      include: { assignedUser: true }, // Include user details
+    });
+
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching tasks for project", error: error.message });
+  }
+});
+
+
 module.exports = router;
