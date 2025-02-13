@@ -7,36 +7,6 @@ const { body, validationResult } = require("express-validator");
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// Create a task under a project
-router.post(
-  "/:projectId/tasks",
-  authMiddleware,
-  [
-    body("title").notEmpty().withMessage("Task title is required"),
-    body("description").notEmpty().withMessage("Task description is required"),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-      const { projectId } = req.params;
-      const { title, description, assignedUserId } = req.body;
-
-      const task = await prisma.task.create({
-        data: { title, description, projectId, assignedUserId },
-      });
-
-      res.status(201).json(task);
-    } catch (error) {
-      res.status(500).json({ message: "Error creating task", error: error.message });
-    }
-  }
-);
-
-
 // Get tasks for a project
 router.get("/:projectId/tasks", authMiddleware, async (req, res) => {
   try {
