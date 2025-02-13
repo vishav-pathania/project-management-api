@@ -100,23 +100,35 @@ router.delete("/tasks/:id", authMiddleware, async (req, res) => {
 
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const { status, assignedUserId } = req.query; // Extract query params
+    let { page = 1, limit = 10, status, assignedUserId } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
 
-    const filters = {}; // Initialize empty filters object
-
-    if (status) filters.status = status; // Apply status filter
-    if (assignedUserId) filters.assignedUserId = assignedUserId; // Apply user filter
+    const filters = {};
+    if (status) filters.status = status;
+    if (assignedUserId) filters.assignedUserId = assignedUserId;
 
     const tasks = await prisma.task.findMany({
       where: filters,
-      include: { project: true, assignedUser: true }, // Include related data
+      include: { project: true, assignedUser: true },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    res.json(tasks);
+    const totalTasks = await prisma.task.count({ where: filters });
+
+    res.json({
+      page,
+      limit,
+      totalPages: Math.ceil(totalTasks / limit),
+      totalTasks,
+      tasks,
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching tasks", error: error.message });
   }
 });
+
 
 
 module.exports = router;

@@ -33,19 +33,36 @@ router.post(
   }
 );
 
-
-// Get all projects
+//get projects with pagination logic
 router.get("/", authMiddleware, async (req, res) => {
   try {
+    let { page = 1, limit = 10 } = req.query; // Default: page 1, 10 items per page
+    page = parseInt(page);
+    limit = parseInt(limit);
+
     const projects = await prisma.project.findMany({
       where: { userId: req.user.userId },
-      include: { tasks: true },
+      // include: { tasks: true },
+      skip: (page - 1) * limit, // Offset
+      take: limit, // Limit
     });
-    res.json(projects);
+
+    const totalProjects = await prisma.project.count({
+      where: { userId: req.user.userId },
+    });
+
+    res.json({
+      page,
+      limit,
+      totalPages: Math.ceil(totalProjects / limit),
+      totalProjects,
+      projects,
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching projects", error: error.message });
   }
 });
+
 
 
 // Update a project (Only the owner can update)
